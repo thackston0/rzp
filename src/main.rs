@@ -30,7 +30,7 @@ fn main() -> io::Result<()> {
             .par_iter()
             .for_each(|file| match File::open(file) {
                 Ok(f) => {
-                    if let Err(e) = list_zip_contents(f) {
+                    if let Err(e) = list_zip_contents(f, file) {
                         eprintln!("Error processing file {}: {}", file, e);
                     }
                 }
@@ -56,13 +56,13 @@ fn main() -> io::Result<()> {
 
 }
 
-fn list_zip_contents(reader: impl Read + Seek) -> zip::result::ZipResult<()> {
+fn list_zip_contents(reader: impl Read + Seek, file_name: &str) -> zip::result::ZipResult<()> {
     let mut zip = zip::ZipArchive::new(reader)?;
     if zip.is_empty(){
         println!("File is empty");
         return Ok(());
     }
-    println!("\nFiles: {}\n--------", zip.len()); // TODO: implement more info here, like a title
+    println!("\n{} contains {} file(s)\n--------", file_name.cyan(), zip.len()); 
     for i in 0..zip.len() {
         let file = zip.by_index(i)?;
         if file.is_dir(){
