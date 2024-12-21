@@ -62,7 +62,7 @@ fn list_zip_contents(reader: impl Read + Seek) -> zip::result::ZipResult<()> {
         println!("File is empty");
         return Ok(());
     }
-    println!("Files: {}\n--------", zip.len()); // TODO: implement more info here, like a title
+    println!("\nFiles: {}\n--------", zip.len()); // TODO: implement more info here, like a title
     for i in 0..zip.len() {
         let file = zip.by_index(i)?;
         if file.is_dir(){
@@ -105,13 +105,6 @@ fn extract_zip_contents(reader: impl Read + Seek, output_dir: &Path) -> ZipResul
             }
         }
     }
-
-    println!(
-        "{}: Extracted {} files",
-        "Success".green(),
-        zip.len()
-    );
-
     Ok(())
 }
 
