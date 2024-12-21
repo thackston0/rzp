@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use zip::result::ZipResult;
 
 #[derive(Parser)]
-#[command(version, about, long_about = None)]
+#[command(name = "rzp", version = "1.0", about = "rzp: a fast, multithreaded zip extractor", long_about = None)]
 struct Args {
     /// input files 
     #[arg(required = true)] // Ensure at least one file is provided
