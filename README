@@ -3,10 +3,12 @@ rzp: a fast, multithreaded zip extractor
 Usage: rzp [OPTIONS] <FILES>...
 
 Arguments:
-  <FILES>...  input files
+  <FILES>...  Input files
 
 Options:
-  -e, --extract  extract files
-  -l, --list     list contents (default if no other argument is specified)
-  -h, --help     Print help
-  -V, --version  Print version
+  -e, --extract             Extract files
+  -l, --list                List contents (default if no other argument is specified)
+  -o, --output <OUTPUT>     Output path [default: .]
+  -c, --create-directories  Create directories matching the file name for each archive
+  -h, --help                Print help
+  -V, --version             Print version
