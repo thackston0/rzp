@@ -6,5 +6,6 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.5.23", features = ["derive"] }
 colored = "2.2.0"
+infer = "0.16.0"
 rayon = "1.10.0"
 zip = "2.2.2"

@@ -43,7 +43,7 @@ fn main() -> io::Result<()> {
             .par_iter()
             .for_each(|file| match File::open(file) {
                 Ok(f) => {
-                    if let Err(e) = extract_zip_contents(f, Path::new(".")) {
+                    if let Err(e) = extract_zip_contents(f, Path::new(".",), file) {
                         eprintln!("Error extracting file {}: {}", file, e);
                     }
                 }
@@ -57,6 +57,9 @@ fn main() -> io::Result<()> {
 }
 
 fn list_zip_contents(reader: impl Read + Seek, file_name: &str) -> zip::result::ZipResult<()> {
+    if !archive_is_valid(file_name){
+        return Ok(());
+    }
     let mut zip = zip::ZipArchive::new(reader)?;
     if zip.is_empty(){
         println!("File is empty");
@@ -79,7 +82,10 @@ fn list_zip_contents(reader: impl Read + Seek, file_name: &str) -> zip::result::
     Ok(())
 }
 
-fn extract_zip_contents(reader: impl Read + Seek, output_dir: &Path) -> ZipResult<()> {
+fn extract_zip_contents(reader: impl Read + Seek, output_dir: &Path, file_name: &str) -> ZipResult<()> {
+    if !archive_is_valid(file_name){
+        return Ok(());
+    }
     let mut zip = zip::ZipArchive::new(reader)?;
 
     for i in 0..zip.len() {
@@ -122,4 +128,15 @@ fn format_bytes(bytes: u64) -> String {
     }
 
     format!("{:.2} {}", size, unit)
+}
+
+fn archive_is_valid(file_name: &str) -> bool {
+    let file_type = infer::get_from_path(file_name).expect("file read successfully").expect("file type is known");
+    if file_type.mime_type() == "application/zip"{
+        return true;
+    }
+    else{
+        eprintln!("{} {}", file_name.red(), "is an invalid archive".red());
+        return false;
+    }
 }
