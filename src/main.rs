@@ -10,16 +10,22 @@ use zip::result::ZipResult;
 #[derive(Parser)]
 #[command(name = "rzp", version = "1.0.1", about = "rzp: a fast, multithreaded zip extractor", long_about = None)]
 struct Args {
-    /// input files 
+    /// Input files 
     #[arg(required = true)] // Ensure at least one file is provided
     files: Vec<String>,
 
-    /// extract files
+    /// Extract files
     #[arg(short, long)]
     extract: bool,
-    /// list contents (default if no other argument is specified)
+    /// List contents (default if no other argument is specified)
     #[arg(short, long)]
     list: bool,
+    /// Output path
+    #[arg(short, long, default_value = ".")]
+    output: String,
+    /// Create directories matching the file name for each archive
+    #[arg(short, long)]
+    create_directories: bool,
 }
 
 fn main() -> io::Result<()> {
@@ -43,7 +49,7 @@ fn main() -> io::Result<()> {
             .par_iter()
             .for_each(|file| match File::open(file) {
                 Ok(f) => {
-                    if let Err(e) = extract_zip_contents(f, Path::new(".",), file) {
+                    if let Err(e) = extract_zip_contents(f, Path::new(&args.output), file, args.create_directories) {
                         eprintln!("Error extracting file {}: {}", file, e);
                     }
                 }
@@ -82,15 +88,27 @@ fn list_zip_contents(reader: impl Read + Seek, file_name: &str) -> zip::result::
     Ok(())
 }
 
-fn extract_zip_contents(reader: impl Read + Seek, output_dir: &Path, file_name: &str) -> ZipResult<()> {
+fn extract_zip_contents(reader: impl Read + Seek, output_dir: &Path, file_name: &str, create_directories: bool) -> ZipResult<()> {
     if !archive_is_valid(file_name){
         return Ok(());
     }
+    // Decide if we need to create a subdirectory named after the ZIP file
+    let base_output_dir = if create_directories {
+        // Safely get just the file stem (e.g., "myarchive" from "myarchive.zip")
+        let file_stem = Path::new(file_name)
+            .file_stem()
+            .unwrap_or_default();
+        output_dir.join(file_stem)
+    } else {
+        output_dir.to_path_buf()
+    };
+
+
     let mut zip = zip::ZipArchive::new(reader)?;
 
     for i in 0..zip.len() {
         let mut file = zip.by_index(i)?;
-        let out_path = output_dir.join(file.name());
+        let out_path = base_output_dir.join(file.name());
 
         if file.is_dir() {
             fs::create_dir_all(&out_path)?;
