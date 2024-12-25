@@ -131,12 +131,15 @@ fn format_bytes(bytes: u64) -> String {
 }
 
 fn archive_is_valid(file_name: &str) -> bool {
-    let file_type = infer::get_from_path(file_name).expect("file read successfully").expect("file type is known");
-    if file_type.mime_type() == "application/zip"{
-        return true;
-    }
-    else{
-        eprintln!("{} {}", file_name.red(), "is an invalid archive".red());
+    let Some(file_type) = infer::get_from_path(file_name).ok().flatten() else {
+        eprintln!("{} {}", file_name.red(), "is not a zip file. Skipping...".red());
         return false;
+    };
+    if file_type.mime_type() == "application/zip" {
+        true
+    } else {
+        eprintln!("{} {}", file_name.red(), "is an invalid archive. Skipping...".red());
+        false
     }
 }
+
