@@ -1,16 +1,16 @@
 use clap::Parser;
+use colored::Colorize;
+use rayon::prelude::*;
 use std::fs::{self, File};
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
-use colored::Colorize;
-use rayon::prelude::*;
 use zip::result::ZipResult;
 
 #[derive(Parser)]
 #[command(name = "rzp", version = "1.1.0", about = "rzp: a fast, multithreaded zip extractor", long_about = None)]
 struct Args {
-    /// Input files 
+    /// Input files
     #[arg(required = true)] // Ensure at least one file is provided
     files: Vec<String>,
 
@@ -49,7 +49,12 @@ fn main() -> io::Result<()> {
             .par_iter()
             .for_each(|file| match File::open(file) {
                 Ok(f) => {
-                    if let Err(e) = extract_zip_contents(f, Path::new(&args.output), file, args.create_directories) {
+                    if let Err(e) = extract_zip_contents(
+                        f,
+                        Path::new(&args.output),
+                        file,
+                        args.create_directories,
+                    ) {
                         eprintln!("Error extracting file {}: {}", file, e);
                     }
                 }
@@ -57,30 +62,30 @@ fn main() -> io::Result<()> {
             });
     }
 
-
     Ok(())
-
 }
 
 fn list_zip_contents(reader: impl Read + Seek, file_name: &str) -> zip::result::ZipResult<()> {
-    if !archive_is_valid(file_name){
+    if !archive_is_valid(file_name) {
         return Ok(());
     }
     let mut zip = zip::ZipArchive::new(reader)?;
-    if zip.is_empty(){
+    if zip.is_empty() {
         println!("File is empty");
         return Ok(());
     }
-    println!("\n{} contains {} file(s)\n--------", file_name.cyan(), zip.len()); 
+    println!(
+        "\n{} contains {} file(s)\n--------",
+        file_name.cyan(),
+        zip.len()
+    );
     for i in 0..zip.len() {
         let file = zip.by_index(i)?;
-        if file.is_dir(){
+        if file.is_dir() {
             println!("{}", file.name().blue());
-        }
-        else if file.is_symlink(){
+        } else if file.is_symlink() {
             println!("{}", file.name().cyan());
-        }
-        else{
+        } else {
             println!("{} {}", file.name(), format_bytes(file.size()).cyan());
         }
     }
@@ -88,21 +93,23 @@ fn list_zip_contents(reader: impl Read + Seek, file_name: &str) -> zip::result::
     Ok(())
 }
 
-fn extract_zip_contents(reader: impl Read + Seek, output_dir: &Path, file_name: &str, create_directories: bool) -> ZipResult<()> {
-    if !archive_is_valid(file_name){
+fn extract_zip_contents(
+    reader: impl Read + Seek,
+    output_dir: &Path,
+    file_name: &str,
+    create_directories: bool,
+) -> ZipResult<()> {
+    if !archive_is_valid(file_name) {
         return Ok(());
     }
     // Decide if we need to create a subdirectory named after the ZIP file
     let base_output_dir = if create_directories {
         // Safely get just the file stem (e.g., "myarchive" from "myarchive.zip")
-        let file_stem = Path::new(file_name)
-            .file_stem()
-            .unwrap_or_default();
+        let file_stem = Path::new(file_name).file_stem().unwrap_or_default();
         output_dir.join(file_stem)
     } else {
         output_dir.to_path_buf()
     };
-
 
     let mut zip = zip::ZipArchive::new(reader)?;
 
@@ -150,14 +157,21 @@ fn format_bytes(bytes: u64) -> String {
 
 fn archive_is_valid(file_name: &str) -> bool {
     let Some(file_type) = infer::get_from_path(file_name).ok().flatten() else {
-        eprintln!("{} {}", file_name.red(), "is not a zip file. Skipping...".red());
+        eprintln!(
+            "{} {}",
+            file_name.red(),
+            "is not a zip file. Skipping...".red()
+        );
         return false;
     };
     if file_type.mime_type() == "application/zip" {
         true
     } else {
-        eprintln!("{} {}", file_name.red(), "is an invalid archive. Skipping...".red());
+        eprintln!(
+            "{} {}",
+            file_name.red(),
+            "is an invalid archive. Skipping...".red()
+        );
         false
     }
 }
-
