@@ -12,7 +12,7 @@ Options:
   -c, --create-directories  Create directories matching the file name for each archive
   -h, --help                Print help
   -V, --version             Print version
----
-Building
 
-Run `cargo build --release` in the project directory. That's all, your build will be located in ./target/release.
+Building
+---
+Run `cargo build --release` in the project directory. That's all, your binary will be located in ./target/release.
