@@ -19,7 +19,7 @@ fn main() -> io::Result<()> {
         )
         .arg(
             Arg::new("extract")
-                .short('e')
+                .short('x')
                 .long("extract")
                 .help("Extract files")
                 .num_args(0)
