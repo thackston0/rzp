@@ -1,38 +1,64 @@
-use clap::Parser;
+use clap::{Command, Arg};
 use colored::Colorize;
 use rayon::prelude::*;
 use std::fs::{self, File};
-use std::io;
-use std::io::prelude::*;
+use std::io::{self, Read, Seek};
 use std::path::Path;
 use zip::result::ZipResult;
 
-#[derive(Parser)]
-#[command(name = "rzp", version = "1.1.0", about = "rzp: a fast, multithreaded zip extractor", long_about = None)]
-struct Args {
-    /// Input files
-    #[arg(required = true)] // Ensure at least one file is provided
-    files: Vec<String>,
-
-    /// Extract files
-    #[arg(short, long)]
-    extract: bool,
-    /// List contents (default if no other argument is specified)
-    #[arg(short, long)]
-    list: bool,
-    /// Output path
-    #[arg(short, long, default_value = ".")]
-    output: String,
-    /// Create directories matching the file name for each archive
-    #[arg(short, long)]
-    create_directories: bool,
-}
-
 fn main() -> io::Result<()> {
-    let args = Args::parse();
-    if args.list || (!args.list && !args.extract) {
+    // Build the CLI using clap::builder
+    let matches = Command::new("rzp")
+        .version("1.1.0")
+        .about("rzp: a fast, multithreaded zip extractor")
+        .arg(
+            Arg::new("files")
+                .help("Input files")
+                .required(true)
+                .value_name("FILES")
+        )
+        .arg(
+            Arg::new("extract")
+                .short('e')
+                .long("extract")
+                .help("Extract files")
+                .num_args(0)
+        )
+        .arg(
+            Arg::new("list")
+                .short('l')
+                .long("list")
+                .help("List contents (default if no other argument is specified)")
+                .num_args(0)
+        )
+        .arg(
+            Arg::new("output")
+                .short('o')
+                .long("output")
+                .default_value(".")
+                .hide_default_value(true)
+                .help("Output path")
+                .num_args(1)
+        )
+        .arg(
+            Arg::new("create_directories")
+                .short('c')
+                .long("create_directories")
+                .num_args(0)
+                .help("Create directories matching the file name for each archive")
+        )
+        .get_matches();
+
+    // Extract the values from the matches
+    let files: Vec<String> = matches.get_many::<String>("files").unwrap().cloned().collect();
+    let extract = matches.contains_id("extract");
+    let list = matches.contains_id("list");
+    let output = matches.get_one::<String>("output").unwrap();
+    let create_directories = matches.contains_id("create_directories");
+
+    if list || (!list && !extract) {
         // Process files in parallel
-        args.files
+        files
             .par_iter()
             .for_each(|file| match File::open(file) {
                 Ok(f) => {
@@ -44,16 +70,16 @@ fn main() -> io::Result<()> {
             });
     }
 
-    if args.extract {
-        args.files
+    if extract {
+        files
             .par_iter()
             .for_each(|file| match File::open(file) {
                 Ok(f) => {
                     if let Err(e) = extract_zip_contents(
                         f,
-                        Path::new(&args.output),
+                        Path::new(output),
                         file,
-                        args.create_directories,
+                        create_directories,
                     ) {
                         eprintln!("Error extracting file {}: {}", file, e);
                     }
@@ -65,7 +91,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn list_zip_contents(reader: impl Read + Seek, file_name: &str) -> zip::result::ZipResult<()> {
+fn list_zip_contents(reader: impl Read + Seek, file_name: &str) -> ZipResult<()> {
     if !archive_is_valid(file_name) {
         return Ok(());
     }
