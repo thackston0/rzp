@@ -1,4 +1,4 @@
-use clap::{Command, Arg};
+use clap::{Arg, Command};
 use colored::Colorize;
 use rayon::prelude::*;
 use std::fs::{self, File};
@@ -15,21 +15,21 @@ fn main() -> io::Result<()> {
             Arg::new("files")
                 .help("Input files")
                 .required(true)
-                .value_name("FILES")
+                .value_name("FILES"),
         )
         .arg(
             Arg::new("extract")
                 .short('x')
                 .long("extract")
                 .help("Extract files")
-                .num_args(0)
+                .num_args(0),
         )
         .arg(
             Arg::new("list")
                 .short('l')
                 .long("list")
                 .help("List contents (default if no other argument is specified)")
-                .num_args(0)
+                .num_args(0),
         )
         .arg(
             Arg::new("output")
@@ -38,19 +38,23 @@ fn main() -> io::Result<()> {
                 .default_value(".")
                 .hide_default_value(true)
                 .help("Output path")
-                .num_args(1)
+                .num_args(1),
         )
         .arg(
             Arg::new("create_directories")
                 .short('c')
                 .long("create_directories")
                 .num_args(0)
-                .help("Create directories matching the file name for each archive")
+                .help("Create directories matching the file name for each archive"),
         )
         .get_matches();
 
     // Extract the values from the matches
-    let files: Vec<String> = matches.get_many::<String>("files").unwrap().cloned().collect();
+    let files: Vec<String> = matches
+        .get_many::<String>("files")
+        .unwrap()
+        .cloned()
+        .collect();
     let extract = matches.contains_id("extract");
     let list = matches.contains_id("list");
     let output = matches.get_one::<String>("output").unwrap();
@@ -58,34 +62,26 @@ fn main() -> io::Result<()> {
 
     if list || (!list && !extract) {
         // Process files in parallel
-        files
-            .par_iter()
-            .for_each(|file| match File::open(file) {
-                Ok(f) => {
-                    if let Err(e) = list_zip_contents(f, file) {
-                        eprintln!("Error processing file {}: {}", file, e);
-                    }
+        files.par_iter().for_each(|file| match File::open(file) {
+            Ok(f) => {
+                if let Err(e) = list_zip_contents(f, file) {
+                    eprintln!("Error processing file {}: {}", file, e);
                 }
-                Err(e) => eprintln!("Error opening file {}: {}", file, e),
-            });
+            }
+            Err(e) => eprintln!("Error opening file {}: {}", file, e),
+        });
     }
 
     if extract {
-        files
-            .par_iter()
-            .for_each(|file| match File::open(file) {
-                Ok(f) => {
-                    if let Err(e) = extract_zip_contents(
-                        f,
-                        Path::new(output),
-                        file,
-                        create_directories,
-                    ) {
-                        eprintln!("Error extracting file {}: {}", file, e);
-                    }
+        files.par_iter().for_each(|file| match File::open(file) {
+            Ok(f) => {
+                if let Err(e) = extract_zip_contents(f, Path::new(output), file, create_directories)
+                {
+                    eprintln!("Error extracting file {}: {}", file, e);
                 }
-                Err(e) => eprintln!("Error opening file {}: {}", file, e),
-            });
+            }
+            Err(e) => eprintln!("Error opening file {}: {}", file, e),
+        });
     }
 
     Ok(())
