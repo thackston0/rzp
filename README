@@ -6,7 +6,7 @@ Arguments:
   <FILES>...  Input files
 
 Options:
-  -e, --extract             Extract files
+  -x, --extract             Extract files
   -l, --list                List contents (default if no other argument is specified)
   -o, --output <OUTPUT>     Output path [default: .]
   -c, --create-directories  Create directories matching the file name for each archive
